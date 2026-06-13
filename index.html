@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpotOn — Music Bot for Slack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0A0E1A;
+      --card:     #1E2740;
+      --card2:    #151B2E;
+      --green:    #00E676;
+      --green-dim:#00b85e;
+      --text:     #E8EDF5;
+      --muted:    #6B7A99;
+      --border:   #2A3550;
+      --slack:    #1a1d2e;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%;
+      height: 64px;
+      background: rgba(10,14,26,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--text);
+      text-decoration: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo span { color: var(--green); }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 100px 5% 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,230,118,0.08) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,230,118,0.08);
+      border: 1px solid rgba(0,230,118,0.2);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--green);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+    .hero-eyebrow::before { content: '●'; font-size: 0.5rem; }
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    h1 em { color: var(--green); font-style: normal; }
+    .hero-sub {
+      max-width: 520px;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1.7;
+      margin-bottom: 44px;
+    }
+    .hero-cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--green);
+      color: #0A0E1A;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 14px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .hero-cta:hover { background: #33eb91; transform: translateY(-1px); }
+    .hero-badges {
+      display: flex; gap: 24px; margin-top: 56px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .badge {
+      color: var(--muted);
+      font-size: 0.82rem;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+    /* SECTION SHARED */
+    section { padding: 96px 5%; }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      color: var(--muted);
+      max-width: 480px;
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 60px;
+    }
+
+    /* COMMANDS */
+    #commands { background: var(--card2); }
+    .commands-header { text-align: center; }
+    .commands-header .section-sub { margin-left: auto; margin-right: auto; }
+
+    .commands-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* SLACK BUBBLE CARD */
+    .cmd-card {
+      background: var(--slack);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .cmd-card:hover {
+      border-color: rgba(0,230,118,0.35);
+      transform: translateY(-2px);
+    }
+    .slack-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .slack-avatar {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 700; color: #0A0E1A;
+      font-family: 'Space Grotesk', sans-serif;
+      flex-shrink: 0;
+    }
+    .slack-meta { display: flex; flex-direction: column; }
+    .slack-name {
+      font-weight: 700; font-size: 0.9rem;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .slack-time { font-size: 0.72rem; color: var(--muted); }
+    .slash-cmd {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      padding: 4px 0;
+      border-top: 1px solid var(--border);
+    }
+    .slash-cmd code {
+      color: var(--green);
+      background: rgba(0,230,118,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+    }
+    .bubble {
+      background: var(--card);
+      border-radius: 4px 12px 12px 12px;
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      line-height: 1.65;
+      color: #c9d1e0;
+      border-left: 3px solid var(--green);
+    }
+    .bubble strong { color: var(--text); display: block; margin-bottom: 6px; font-family: 'Space Grotesk', sans-serif; }
+    .bubble .b-row { display: flex; justify-content: space-between; gap: 8px; }
+    .bubble .b-col { flex: 1; }
+    .bubble .b-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .bubble .b-val { color: var(--text); font-weight: 500; }
+    .bubble ul { padding-left: 0; list-style: none; }
+    .bubble ul li::before { content: '• '; color: var(--green); }
+    .bubble .winner { color: var(--green); font-weight: 700; margin-top: 8px; }
+    .bubble .divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+    .cmd-desc {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* HOW IT WORKS */
+    #how { max-width: 900px; margin: 0 auto; }
+    #how-wrap { background: var(--bg); }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 40px;
+      margin-top: 0;
+    }
+    .step-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: rgba(0,230,118,0.15);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .step-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+    .step-body { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+    /* STACK */
+    #stack { background: var(--card2); }
+    .stack-grid {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      margin-top: 0;
+    }
+    .stack-pill {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+    .stack-icon { font-size: 1.2rem; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 5%;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    .footer-logo span { color: var(--green); }
+    footer p { color: var(--muted); font-size: 0.82rem; }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .commands-grid { grid-template-columns: 1fr; }
+      .bubble .b-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">Spot<span>On</span></a>
+  <div class="nav-links">
+    <a href="#commands">Commands</a>
+    <a href="#how-wrap">How it works</a>
+    <a href="#stack">Stack</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">Slack Bot · Music</div>
+  <h1>Your team's<br><em>music brain</em><br>in Slack.</h1>
+  <p class="hero-sub">SpotOn brings music discovery, artist stats, trivia, and head-to-head battles directly into your Slack workspace — no tabs, no switching.</p>
+  <a href="#commands" class="hero-cta">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    See all commands
+  </a>
+  <div class="hero-badges">
+    <span class="badge"><span class="badge-dot"></span> No Spotify login needed</span>
+    <span class="badge"><span class="badge-dot"></span> Free APIs only</span>
+    <span class="badge"><span class="badge-dot"></span> 6 slash commands</span>
+    <span class="badge"><span class="badge-dot"></span> Interactive trivia</span>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section id="commands">
+  <div class="commands-header">
+    <div class="section-label">Commands</div>
+    <h2>Everything you can do</h2>
+    <p class="section-sub">Six slash commands, each returning a clean, formatted response right in the channel.</p>
+  </div>
+  <div class="commands-grid">
+
+    <!-- /spoton-track -->
+    <div class="cmd-card">
+      <div class="slack-header">
+        <div class="slack-avatar">S</div>
+        <div class="slack-meta">
+          <span class="slack-name">SpotOn</span>
+          <span class="slack-time">Today at 3:42 PM</span>
+        </div>
+      </div>
+      <div class="slash-cmd">You used <code>/spoton-track</code></div>
+      <div class="bubble">
+        <strong>🎵 SpotOn Track Pick</strong>
+        <div class="b-row">
+          <div class="b-col"><div class="b-label">Track</div><div class="b-val">Midnight City</div></div>
+          <div class="b-col"><div class="b-label">Artist</div><div class="b-val">M83</div></div>
+        </div>
+        <div class="b-row" style="margin-top:8px">
+          <div class="b-col"><div class="b-label">Album</div><div class="b-val">Hurry Up, We're Dreaming</div></div>
+          <div class="b-col"><div class="b-label">Year</div><div class="b-val">2011</div></div>
+        </div>
+      </div>
+      <p class="cmd-desc">Picks a random track from the MusicBrainz catalogue across a surprise genre.</p>
+    </div>
+
+    <!-- /spoton-similar -->
+    <div class="cmd-card">
+      <div class="slack-header">
+        <div class="slack-avatar">S</div>
+        <div class="slack-meta">
+          <span class="slack-name">SpotOn</span>
+          <span class="slack-time">Today at 3:44 PM</span>
+        </div>
+      </div>
+      <div class="slash-cmd">You used <code>/spoton-similar Radiohead</code></div>
+      <div class="bubble">
+        <strong>🎧 If you like Radiohead, try:</strong>
+        <ul>
+          <li>Portishead</li>
+          <li>Massive Attack</li>
+          <li>Björk</li>
+          <li>Interpol</li>
+          <li>Sigur Rós</li>
+        </ul>
+      </div>
+      <p class="cmd-desc">Finds artists who share genres and tags with the one you love.</p>
+    </div>
+
+    <!-- /spoton-vs -->
+    <div class="cmd-card">
+      <div class="slack-header">
+        <div class="slack-avatar">S</div>
+        <div class="slack-meta">
+          <span class="slack-name">SpotOn</span>
+          <span class="slack-time">Today at 3:51 PM</span>
+        </div>
+      </div>
+      <div class="slash-cmd">You used <code>/spoton-vs Oasis vs Blur</code></div>
+      <div class="bubble">
+        <strong>🥊 Artist Battle</strong>
+        <div class="b-row">
+          <div class="b-col"><div class="b-label">Origin</div><div class="b-val">Oasis: GB<br>Blur: GB</div></div>
+          <div class="b-col"><div class="b-label">Albums</div><div class="b-val">Oasis: 7<br>Blur: 8</div></div>
+        </div>
+        <hr class="divider">
+        <div class="winner">🏆 Winner: Blur</div>
+      </div>
+      <p class="cmd-desc">Head-to-head stat comparison between any two artists. Weighted scoring decides the winner.</p>
+    </div>
+
+    <!-- /spoton-stats -->
+    <div class="cmd-card">
+      <div class="slack-header">
+        <div class="slack-avatar">S</div>
+        <div class="slack-meta">
+          <span class="slack-name">SpotOn</span>
+          <span class="slack-time">Today at 4:02 PM</span>
+        </div>
+      </div>
+      <div class="slash-cmd">You used <code>/spoton-stats Daft Punk</code></div>
+      <div class="bubble">
+        <strong>📊 Artist Stats: Daft Punk</strong>
+        <div class="b-row">
+          <div class="b-col"><div class="b-label">Country</div><div class="b-val">France</div></div>
+          <div class="b-col"><div class="b-label">Active</div><div class="b-val">1993 – 2021</div></div>
+        </div>
+        <div style="margin-top:8px"><div class="b-label">Genres</div><div class="b-val">French house · Electronic</div></div>
+        <div style="margin-top:8px"><div class="b-label">Top Recordings</div>
+          <ul><li>One More Time</li><li>Get Lucky</li><li>Harder Better Faster Stronger</li></ul>
+        </div>
+      </div>
+      <p class="cmd-desc">Full MusicBrainz profile — tags, timeline, album count, and top recordings.</p>
+    </div>
+
+    <!-- /spoton-trivia -->
+    <div class="cmd-card">
+      <div class="slack-header">
+        <div class="slack-avatar">S</div>
+        <div class="slack-meta">
+          <span class="slack-name">SpotOn</span>
+          <span class="slack-time">Today at 4:10 PM</span>
+        </div>
+      </div>
+      <div class="slash-cmd">You used <code>/spoton-trivia</code></div>
+      <div class="bubble">
+        <strong>🎵 Music Trivia</strong>
+        Which band released "Dark Side of the Moon"?
+        <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
+          <span style="background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.3);padding:4px 10px;border-radius:6px;font-size:0.8rem;">A. Queen</span>
+          <span style="background:rgba(0,230,118,0.25);border:1px solid var(--green);padding:4px 10px;border-radius:6px;font-size:0.8rem;color:var(--green);">B. Pink Floyd ✓</span>
+          <span style="background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.3);padding:4px 10px;border-radius:6px;font-size:0.8rem;">C. Led Zeppelin</span>
+          <span style="background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.3);padding:4px 10px;border-radius:6px;font-size:0.8rem;">D. The Beatles</span>
+        </div>
+      </div>
+      <p class="cmd-desc">Random music trivia from OpenTDB with interactive answer buttons right in Slack.</p>
+    </div>
+
+    <!-- /spoton-bandname -->
+    <div class="cmd-card">
+      <div class="slack-header">
+        <div class="slack-avatar">S</div>
+        <div class="slack-meta">
+          <span class="slack-name">SpotOn</span>
+          <span class="slack-time">Today at 4:15 PM</span>
+        </div>
+      </div>
+      <div class="slash-cmd">You used <code>/spoton-bandname</code></div>
+      <div class="bubble">
+        <strong>🎸 Your Band Name</strong>
+        <div style="font-size:1rem;font-weight:700;color:var(--text);margin:4px 0 8px;">The Overcaffeinated Ferrets</div>
+        <div class="b-label">Debut Album</div>
+        <div style="color:#c9d1e0;font-style:italic;">"Songs From The Parking Garage"</div>
+      </div>
+      <p class="cmd-desc">Randomly generated band names and debut album titles. No API needed — pure chaos.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div id="how-wrap">
+<section>
+  <div id="how">
+    <div class="section-label">How it works</div>
+    <h2>Simple setup,<br>instant music IQ.</h2>
+    <p class="section-sub">SpotOn runs in Socket Mode — no public URL or server needed.</p>
+    <div class="steps">
+      <div>
+        <div class="step-num">01</div>
+        <div class="step-title">Create a Slack App</div>
+        <p class="step-body">Set up a Slack app in Socket Mode, register your slash commands, and grab your Bot & App tokens.</p>
+      </div>
+      <div>
+        <div class="step-num">02</div>
+        <div class="step-title">Add your tokens</div>
+        <p class="step-body">Drop <code style="color:var(--green);font-size:0.85em">SLACK_BOT_TOKEN</code> and <code style="color:var(--green);font-size:0.85em">SLACK_APP_TOKEN</code> into a <code style="color:var(--green);font-size:0.85em">.env</code> file. No other keys required.</p>
+      </div>
+      <div>
+        <div class="step-num">03</div>
+        <div class="step-title">Run the bot</div>
+        <p class="step-body">Install dependencies with <code style="color:var(--green);font-size:0.85em">npm install</code> and start with <code style="color:var(--green);font-size:0.85em">node index.js</code>. That's it.</p>
+      </div>
+      <div>
+        <div class="step-num">04</div>
+        <div class="step-title">Use in Slack</div>
+        <p class="step-body">Invite SpotOn to any channel and start firing slash commands. Responses appear instantly, formatted for readability.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- STACK -->
+<section id="stack">
+  <div class="section-label">Built with</div>
+  <h2>The stack</h2>
+  <p class="section-sub" style="margin-bottom:32px">Free, open, and no OAuth hoops to jump through.</p>
+  <div class="stack-grid">
+    <div class="stack-pill"><span class="stack-icon">⚡</span> Slack Bolt (Node.js)</div>
+    <div class="stack-pill"><span class="stack-icon">🎵</span> MusicBrainz API</div>
+    <div class="stack-pill"><span class="stack-icon">❓</span> OpenTDB Trivia API</div>
+    <div class="stack-pill"><span class="stack-icon">🟢</span> Socket Mode</div>
+    <div class="stack-pill"><span class="stack-icon">📦</span> axios · dotenv</div>
+    <div class="stack-pill"><span class="stack-icon">🔑</span> No API keys required*</div>
+  </div>
+  <p style="color:var(--muted);font-size:0.78rem;margin-top:20px">* Beyond your Slack app tokens.</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Spot<span>On</span></div>
+  <p>A music bot for Slack · Powered by MusicBrainz & OpenTDB</p>
+  <p style="color:var(--muted)">Built with Slack Bolt · Node.js</p>
+</footer>
+
+</body>
+</html>
