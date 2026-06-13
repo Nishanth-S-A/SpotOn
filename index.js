@@ -662,7 +662,7 @@ app.command("/spoton-help", async ({ ack, respond }) => {
         elements: [
           {
             type: "mrkdwn",
-            text: "Powered by Spotify & OpenTDB · Built with Slack Bolt",
+            text: "Powered by MusicBrainz & OpenTDB · Built with Slack Bolt",
           },
         ],
       },
