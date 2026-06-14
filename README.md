@@ -14,7 +14,7 @@ It uses the free MusicBrainz API and OpenTDB trivia API, so no paid subscription
 
 The bot is live and testable in the Hack Club Slack:
 
-**[#spoton on Hack Club Slack →](https://app.slack.com/client/E09V59WQY1E/C0B8P5DRDB3)**
+**[#bot-testings on Hack Club Slack →](https://app.slack.com/client/E09V59WQY1E/C0B8P5DRDB3)**
 
 Website: [nishanth-s-a.github.io/SpotOn](https://nishanth-s-a.github.io/SpotOn/)
 
